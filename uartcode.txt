@@ -1,0 +1,115 @@
+//must have pullupregistor at pins
+https://adhityareza.wordpress.com/2014/10/21/interfacing-android-with-microcontroller/
+https://www.newbiehack.com/USARTDetailed.aspx
+
+
+
+
+unsigned char USART_Receive( void )
+{
+while ( !(UCSRA & (1 << RXC)) ); //Wait for the RXC to not have 0
+return UDR; //Get that data outa there and back to the main program!
+}
+/////////////Make sure you clear the RXC flag right after you get the data out of the UDR register!
+
+
+
+
+
+
+void USART_Transmit (unsigned int data)
+{
+//Wait until the Transmitter is ready
+while (! (UCSRA & (1 << UDRE)) ); 
+
+//Make the 9th bit 0 for the moment
+UCSRB &=~(1 << TXB8); 
+
+//If the 9th bit of the data is a 1
+if (data & 0x0100) 
+
+//Set the TXB8 bit to 1
+USCRB |= (1 << TXB8); 
+
+//Get that data outa here!
+UDR = data;
+}
+
+Polling Resources:
+
+UDRE = USART Data Register Empty - This is cleared when the UDR is written to.
+TXC = Transmit complete - You can use this resource if your are doing half duplex. This flag happens when the data leaves the shift register. Remember that queue that we talked about earlier.
+Interrupt Resources: Remember to set your global interrupt variable before using these cool resources!
+
+UDRIE = Data Register Empty Interrupt Enable if UDRE is set to 1 - This will be handy when using interrupts. The microcontroller will stop what you are doing so you can go and put your data into the UDR train station.
+TXCIE = Transmit Complete Interrupt Enable - Use this if you are doing half-duplex and you want the microcontroller to interrupt you so you can go and put your data into the UDR train station.
+
+
+
+
+
+
+
+
+
+
+
+void main(void)
+{
+// Declare your local variables here
+ 
+unsigned int i;
+char data;
+char buffer[10];
+ 
+PORTC=0x00;
+DDRC=0xFF;
+ 
+PORTD=0xFF;
+DDRD=0x00;
+// USART initialization
+// Communication Parameters: 8 Data, 1 Stop, No Parity
+// USART Receiver: On transmitter also on
+// USART Transmitter: Off
+// USART Mode: Asynchronous
+// USART Baud Rate: 9600
+UCSRA=0x00;
+UCSRB=0x18;
+UCSRC=0x86;
+UBRRH=0x00;
+UBRRL=0x33;
+
+
+//perhaps pullup register command 
+ACSR=0x80;
+SFIOR=0x00;
+ 
+lcd_init(16);
+ 
+i=0;
+ 
+while (1)
+{
+// Place your code here
+
+
+while(!(UCSRA & (1<<RXC)))
+{
+//do nothing
+}
+data = UDR;
+if (data != '#')
+{
+buffer[i] = data;
+i++;
+} else
+{
+buffer[i]='\0';
+i=0;
+lcd_clear();
+lcd_gotoxy(0,0);
+lcd_puts(buffer);
+}
+
+
+}
