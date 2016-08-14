@@ -1,0 +1,29 @@
+#include  <avr/io.h>
+#define  PORT_ON(port,pin) port |= (1<<pin)
+#define  PORT_OFF(port,pin)  port &=  ~(1<<pin)
+
+int  main(void)
+  {
+  	unsigned  int adc_value;	// Variable to hold ADC  result
+  	DDRD=0xff;	// Set Port D for LED output
+  	PORTD  = 0x00;	// Clear PortD pins
+  	// Set ADCSRA Register with division factor 32
+  	ADCSRA  = (1<<ADEN) | (1<<ADPS2) | (1<<ADPS0);
+  	ADMUX=0x05;	//Binary equivalent of 0101 .in this reg, ref volt andd bit precision/left right justify is also set
+  	while (1)	//Forever since it is in  single conversion mode
+  	{
+  		ADCSRA  |= (1<<ADSC);//start conversion	
+  		// wait until conversion  completes; ADSC=0 means Complete
+  		while (ADCSRA &  (1<<ADSC));  
+  		adc_value = ADCW;	//Store ADC result
+  		//  Todo: Set and toggle LED status
+  	}
+  }
+If you observe carefully we have used ADCW which is not found in Atmel datasheet. This is a compiler help which stores values of ADCL and ADCH. If we do not use this, then individually ADCH and ADCL should be polled. Also note that if we are using free running mode, then we need to check ADIF instead of ADSC as ADSC will never be zero in free running mode.
+
+Input voltage can be measured as: VIn [V] = (ADCH*256+ADCL) * VRef [V] / 1024 for 10 bit ADC
+
+Input voltage can be measured as: VIn [V] = (ADCH)* VRef [V]/256 for 8 bit ADC
+
+
+If you need to use free running mode, then set ADFR bit. Again, if you need 8 bit precision, we can set ADLAR bit to 1. Since we are using single conversion with 10 bit resolution, we will not write any extra code here. This completes ADC setup and we will start the conversion.
